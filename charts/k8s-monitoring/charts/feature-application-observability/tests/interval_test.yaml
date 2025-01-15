@@ -1,11 +1,14 @@
 # yamllint disable rule:document-start rule:line-length rule:trailing-spaces
-suite: Test default values
+suite: Test with interval processor
 templates:
   - configmap.yaml
 tests:
-  - it: creates the default pipeline
+  - it: creates the pipeline with the interval processor
     set:
       deployAsConfigMap: true
+      processors:
+        interval:
+          enabled: true
       receivers:
         otlp:
           grpc:
@@ -152,12 +155,26 @@ tests:
                 }
               }
 
-              // Batch Processor --> Destinations
+              // Batch Processor --> Interval
               otelcol.processor.batch "default" {
                 send_batch_size = 16384
                 send_batch_max_size = 0
                 timeout = "2s"
 
+                output {
+                  metrics = [otelcol.processor.interval.default.input]
+                  logs = [otelcol.processor.interval.default.input]
+                  traces = [otelcol.processor.interval.default.input]
+                }
+              }
+              // Interval --> Destinations
+              otelcol.processor.interval "default" {
+                interval = "60s"
+                passthrough {
+                  gauge = false
+                  summary = false
+                }
+          
                 output {
                   metrics = argument.metrics_destinations.value
                   logs = argument.logs_destinations.value
